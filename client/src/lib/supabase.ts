@@ -3,15 +3,20 @@ import { createClient } from "@supabase/supabase-js";
 const url = import.meta.env.VITE_SUPABASE_URL;
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-if (!url || !publishableKey) {
-  throw new Error("Supabase public configuration is missing.");
+export const isSupabaseConfigured = Boolean(url && publishableKey);
+
+if (!isSupabaseConfigured) {
+  console.warn("[Supabase] Configuration is missing. Local play modes are active.");
 }
 
-export const supabase = createClient(url, publishableKey, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
-});
+export const supabase = isSupabaseConfigured
+  ? createClient(url!, publishableKey!, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+    })
+  : (null as unknown as ReturnType<typeof createClient>);
 
 export async function ensureAnonymousPlayer() {
+  if (!isSupabaseConfigured || !supabase) return null;
   const { data: existing, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
   if (existing.session?.user) return existing.session.user;
@@ -21,6 +26,7 @@ export async function ensureAnonymousPlayer() {
 }
 
 export async function gameAccessGranted() {
+  if (!isSupabaseConfigured || !supabase) return true;
   await ensureAnonymousPlayer();
   const { data, error } = await supabase
     .from("game_access_grants")
@@ -33,6 +39,9 @@ export async function gameAccessGranted() {
 }
 
 export async function verifyGameAccess(password: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    return { granted: true as const, expiresAt: new Date(Date.now() + 86400000).toISOString() };
+  }
   await ensureAnonymousPlayer();
   const { data, error } = await supabase.functions.invoke("verify-game-access", { body: { password } });
   if (error) throw error;

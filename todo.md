@@ -162,5 +162,15 @@
 - [x] Restore local development-server startup where the copied project directory name prevents package-script binary resolution.
 - [x] Inspect the applied Supabase cleanup definition to confirm the 60-minute threshold and repeat-safe conditional update.
 - [ ] Verify cleanup behavior for stale active rooms, recent active rooms, and terminal rooms without inserting production test data.
-- [ ] Guard the GitHub Pages workflow so it stops safely until the required public Supabase build configuration is added by a repository administrator.
-- [ ] Resolve the GitHub Pages workflow package-manager version conflict before re-running deployment.
+- [x] Guard the GitHub Pages workflow so it stops safely until the required public Supabase build configuration is added by a repository administrator.
+- [x] Resolve the GitHub Pages workflow package-manager version conflict before re-running deployment.
+
+## Card image loading performance
+
+- [x] Measure current card-image formats, sizes, request count, and loading behavior across the game boards.
+- [x] Create optimized responsive card-image derivatives without changing the represented game content.
+- [x] Update card rendering to prioritize visible images and defer off-screen image work safely.
+- [x] Validate faster initial board rendering, image integrity, TypeScript, tests, and the GitHub Pages build.
+- [ ] Measure the actual initial-board image request count and eager-versus-lazy behavior in a browser session.
+- [ ] Generate true multi-size card-image derivatives and add `srcset`/`sizes` so each device downloads an appropriate resolution.
+- [ ] Verify optimized card rendering and initial visible-card loading in-browser, then record the performance evidence.
