@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const ROOM_SESSION_KEY = "guess-who:supabase-room-seat";
@@ -71,36 +71,92 @@ async function fetchSnapshot(session: RoomSession, onlineSeats: Set<number>): Pr
 }
 
 export function useSupabaseRoomSnapshot(roomCode: string) {
-  const [session, setSession] = useState<RoomSession | null>(() => readSession(roomCode));
+  const normalizedCode = normaliseCode(roomCode);
+  const [session, setSession] = useState<RoomSession | null>(() => readSession(normalizedCode));
   const [data, setData] = useState<RoomSnapshot | null>(null);
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [onlineSeats, setOnlineSeats] = useState<Set<number>>(new Set());
-  const normalizedCode = normaliseCode(roomCode);
 
-  useEffect(() => { setSession(readSession(normalizedCode)); }, [normalizedCode]);
-  const refetch = useCallback(async () => {
-    if (!session) { setData(null); setLoading(false); return; }
-    try { setError(null); setData(await fetchSnapshot(session, onlineSeats)); }
-    catch (reason) { setError(reason instanceof Error ? reason : new Error(message(reason))); }
-    finally { setLoading(false); }
-  }, [onlineSeats, session]);
+  const onlineSeatsRef = useRef(onlineSeats);
+  onlineSeatsRef.current = onlineSeats;
 
-  useEffect(() => { setLoading(true); void refetch(); }, [refetch]);
   useEffect(() => {
-    if (!session) return;
-    const channel = supabase.channel(`room:${session.roomId}`, { config: { presence: { key: String(session.seatNumber) } } })
-      .on("postgres_changes", { event: "*", schema: "public", table: "game_rooms", filter: `id=eq.${session.roomId}` }, () => void refetch())
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_public_seats", filter: `room_id=eq.${session.roomId}` }, () => void refetch())
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_private_states", filter: `room_id=eq.${session.roomId}` }, () => void refetch())
+    setSession(readSession(normalizedCode));
+  }, [normalizedCode]);
+
+  const refetch = useCallback(async () => {
+    const currentSession = readSession(normalizedCode);
+    if (!currentSession) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    try {
+      setError(null);
+      const snapshot = await fetchSnapshot(currentSession, onlineSeatsRef.current);
+      setData(snapshot);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason : new Error(message(reason)));
+    } finally {
+      setLoading(false);
+    }
+  }, [normalizedCode]);
+
+  // Initial fetch on mount or when roomCode changes
+  useEffect(() => {
+    setLoading(true);
+    void refetch();
+  }, [refetch]);
+
+  // Update presence status in snapshot when onlineSeats changes without full refetch
+  useEffect(() => {
+    setData(prev => {
+      if (!prev) return null;
+      const opponentSeatNumber = prev.opponent.seatNumber;
+      const isConnected = opponentSeatNumber ? onlineSeats.has(opponentSeatNumber) : false;
+      if (prev.opponent.isConnected === isConnected) return prev;
+      return {
+        ...prev,
+        opponent: {
+          ...prev.opponent,
+          isConnected,
+        },
+      };
+    });
+  }, [onlineSeats]);
+
+  // Stable realtime subscription — ONLY depends on roomId and seatNumber
+  const roomId = session?.roomId;
+  const seatNumber = session?.seatNumber;
+
+  useEffect(() => {
+    if (!roomId || !seatNumber) return;
+
+    const channel = supabase.channel(`room:${roomId}`, { config: { presence: { key: String(seatNumber) } } })
+      .on("postgres_changes", { event: "*", schema: "public", table: "game_rooms", filter: `id=eq.${roomId}` }, () => void refetch())
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_public_seats", filter: `room_id=eq.${roomId}` }, () => void refetch())
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_private_states", filter: `room_id=eq.${roomId}` }, () => void refetch())
       .on("presence", { event: "sync" }, () => {
         const current = channel.presenceState();
         setOnlineSeats(new Set(Object.keys(current).map(Number)));
       })
-      .subscribe(status => { if (status === "SUBSCRIBED") void channel.track({ seat: session.seatNumber }); });
-    return () => { void supabase.removeChannel(channel); };
-  }, [refetch, session]);
+      .subscribe(status => {
+        if (status === "SUBSCRIBED") {
+          void channel.track({ seat: seatNumber });
+        }
+      });
 
-  const clearSession = useCallback(() => { clearRoomSession(); setSession(null); setData(null); }, []);
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [roomId, seatNumber, refetch]);
+
+  const clearSession = useCallback(() => {
+    clearRoomSession();
+    setSession(null);
+    setData(null);
+  }, []);
+
   return { session, data, isLoading, error, isError: Boolean(error), refetch, clearSession };
 }

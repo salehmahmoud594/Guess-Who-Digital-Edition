@@ -40,7 +40,5 @@ export function getRoomTabId() {
 export function useRoomSnapshot(roomCode: string) {
   const { isOnline } = useNetworkStatus();
   const snapshot = useSupabaseRoomSnapshot(roomCode);
-  const { refetch } = snapshot;
-  useEffect(() => { if (isOnline) void refetch(); }, [isOnline, refetch]);
   return { ...snapshot, isOnline, clearSession: clearRoomSession };
 }
