@@ -1,0 +1,174 @@
+/* DESIGN PHILOSOPHY: Whimsical Tabletop Editorial — the printed portrait remains fully visible and readable as the clue surface. */
+
+.card-art {
+  aspect-ratio: 4 / 5;
+  background: var(--category-soft, #d5f0eb);
+}
+
+.card-art img,
+.secret-popover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 45%;
+  background: var(--category-soft, #d5f0eb);
+}
+
+.card-art img {
+  image-rendering: auto;
+  transform: scale(1.035);
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.game-card:hover .card-art img,
+.game-card:focus-visible .card-art img {
+  transform: scale(1.065);
+}
+
+/* Animal crops are already exported as clean 4:5 artwork. Keep their full
+   panel visible while leaving the approved Fictional Characters treatment above unchanged. */
+/* Whimsical Tabletop Editorial — Animals use the corrected 4:5 exports at
+   native framing; Fictional Characters keep the approved rules above. */
+.game-card.category-animals .card-art img {
+  object-position: center center;
+  transform: none;
+}
+
+.game-card.category-animals:hover .card-art img,
+.game-card.category-animals:focus-visible .card-art img {
+  transform: scale(1.015);
+}
+
+/* Whimsical Tabletop Editorial — Cartoon cards preserve the supplied 1024x1280
+   composition exactly; their source is already the target 4:5 ratio. */
+.game-card.category-cartoon_characters .card-art {
+  aspect-ratio: 4 / 5;
+}
+
+.game-card.category-cartoon_characters .card-art img {
+  object-fit: cover;
+  object-position: center center;
+  transform: none;
+}
+
+.game-card.category-cartoon_characters:hover .card-art img,
+.game-card.category-cartoon_characters:focus-visible .card-art img {
+  transform: scale(1.012);
+}
+
+.game-card.category-cartoon_characters .card-label > span {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  text-overflow: clip;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.game-card.category-cartoon_characters .card-label {
+  min-height: 37px;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.split-game .game-card.category-cartoon_characters .card-label {
+  min-height: 31px;
+  padding: 4px 4px 5px;
+  font-size: 8px;
+}
+
+.split-game .game-card.category-cartoon_characters .card-label > span {
+  -webkit-line-clamp: 2;
+}
+
+/* User-supplied movie posters vary in source aspect ratio. Contain them inside
+   the established 4:5 card rather than cropping any title or focal artwork. */
+.game-card.category-egyptian_movies .card-art img,
+.game-card.category-cartoon_movies .card-art img {
+  object-fit: contain;
+  object-position: center center;
+  transform: none;
+}
+
+.game-card.category-egyptian_movies:hover .card-art img,
+.game-card.category-egyptian_movies:focus-visible .card-art img,
+.game-card.category-cartoon_movies:hover .card-art img,
+.game-card.category-cartoon_movies:focus-visible .card-art img {
+  transform: scale(1.012);
+}
+
+.game-card.category-egyptian_movies .card-label,
+.game-card.category-cartoon_movies .card-label {
+  min-height: 37px;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.game-card.category-egyptian_movies .card-label > span,
+.game-card.category-cartoon_movies .card-label > span {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  text-overflow: clip;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Emojis are native Unicode artwork, so they render as large, readable clue
+   surfaces without external image requests or an artificial crop. */
+.game-card.category-emojis .card-art {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 24%, #fff8dc 0 8%, transparent 9%),
+    linear-gradient(145deg, #fbe6b8, #f6c76d);
+}
+
+.game-card.category-emojis .emoji-art,
+.secret-popover .secret-emoji {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  line-height: 1;
+}
+
+.game-card.category-emojis .emoji-art {
+  font-size: clamp(42px, 6vw, 82px);
+  filter: drop-shadow(0 5px 0 rgba(92, 55, 17, 0.14));
+  transform: translateY(-1px);
+}
+
+.secret-popover .secret-emoji {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 4 / 4.7;
+  border-radius: 5px;
+  background: #fbe6b8;
+  font-size: 54px;
+}
+
+.split-game .card-art,
+.secret-mini-grid .card-art {
+  aspect-ratio: 4 / 5;
+}
+
+.dialog-card .card-art {
+  aspect-ratio: 4 / 5;
+}
+
+@media (max-width: 640px) {
+  .card-art {
+    aspect-ratio: 4 / 5;
+  }
+
+  .card-label {
+    min-height: 35px;
+    padding-inline: 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-art img {
+    transition: none;
+    transform: none;
+  }
+}

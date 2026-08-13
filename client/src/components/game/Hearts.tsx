@@ -1,0 +1,3 @@
+// DESIGN PHILOSOPHY: Whimsical Tabletop Editorial — hearts are a compact scorecard signal with no ambiguity about ownership.
+import { Heart } from "lucide-react";
+export function Hearts({ value, label }: { value: number | null; label: string }) { return <div className="hearts" aria-label={`${label}: ${value === null ? "unlimited guesses" : `${value} hearts remaining`}`}><span className="eyebrow">{label}</span>{value === null ? <strong className="unlimited-label">∞ Unlimited</strong> : <span className="heart-row">{[0, 1, 2, 3, 4].slice(0, Math.max(value, 1)).map((heart) => <Heart key={heart} size={16} fill={heart < value ? "currentColor" : "none"} className={heart < value ? "heart-live" : "heart-empty"} />)}<strong>{value}</strong></span>}</div>; }

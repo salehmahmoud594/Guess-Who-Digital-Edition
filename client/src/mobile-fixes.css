@@ -1,0 +1,19 @@
+/* DESIGN PHILOSOPHY: Whimsical Tabletop Editorial — on phones the table folds into one readable stack, never a squeezed desktop spread. */
+@media (max-width: 800px){
+  html,body,#root{width:100%;max-width:100%;overflow-x:hidden}
+  .app-surface{width:100%;overflow-x:hidden}
+  .home-page{width:100%;overflow:hidden}
+  .home-hero{display:block!important;width:100%;max-width:100%;padding-left:22px;padding-right:22px}
+  .hero-copy{width:100%;max-width:none}
+  .hero-copy h1{max-width:340px;font-size:clamp(48px,14vw,72px);letter-spacing:-.04em}
+  .hero-lede{max-width:330px}
+  .hero-board{width:100%;min-height:390px;margin-top:26px}
+  .hero-card{width:min(48vw,180px)}
+  .hero-card-front{right:4%}.hero-card-back{left:3%}
+  .setup-layout,.leaderboard-page{display:block!important;width:100%;max-width:100%;margin-top:25px}
+  .setup-intro,.leaderboard-intro{width:100%;max-width:100%;margin-bottom:30px}
+  .setup-form,.scorecard{width:100%;max-width:100%;margin:0}
+  .setup-form{overflow:hidden}
+  .secret-page{width:100%;max-width:100%;overflow:hidden}
+  .secret-grid{grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
+}
