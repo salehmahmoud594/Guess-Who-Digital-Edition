@@ -29,19 +29,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - name: Verify Supabase browser configuration
-        run: |
-          test -n "$VITE_SUPABASE_URL" || { echo "Missing repository secret: VITE_SUPABASE_URL" >&2; exit 1; }
-          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "Missing repository secret: VITE_SUPABASE_PUBLISHABLE_KEY" >&2; exit 1; }
+      - run: pnpm build:github-pages
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-      - run: GITHUB_PAGES_ASSET_DIRECTORY=docs/manus-storage pnpm build:github-pages
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://nuvdrnaeyssjyjqexdpy.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_uwMS38zQjnzMH0XegOlqvQ_zwajUf8A' }}
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/github-pages
+          path: docs
       - id: deployment
         uses: actions/deploy-pages@v4
