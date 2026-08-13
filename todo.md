@@ -163,3 +163,4 @@
 - [x] Inspect the applied Supabase cleanup definition to confirm the 60-minute threshold and repeat-safe conditional update.
 - [ ] Verify cleanup behavior for stale active rooms, recent active rooms, and terminal rooms without inserting production test data.
 - [ ] Guard the GitHub Pages workflow so it stops safely until the required public Supabase build configuration is added by a repository administrator.
+- [ ] Resolve the GitHub Pages workflow package-manager version conflict before re-running deployment.
