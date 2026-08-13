@@ -1,5 +1,0 @@
-# Image Ingestion Findings
-
-The uploaded ZIP contains 25 unique 3168 × 1344 PNG source sheets. Each sheet is a six-column character row, producing 150 deterministic portrait crops at 1075 × 1344 pixels. The first 30 crops are mapped to the fixed Fictional Characters runtime IDs 31–60 with stable names beneath the artwork. All 150 files were accepted by the upload command with zero reported upload failures.
-
-The crop preview confirms that the first 30 portraits preserve distinct faces, hair, accessories, and the pale mist-blue category field. A direct browser probe of `/manus-storage/fictional_characters_001_02c2e7e8.png` currently returns the managed preview’s “This page is currently unavailable” response, while another uploaded asset path returned a redirect and a later bounded probe reached HTTP 200. This indicates an intermittent storage/preview resolution issue rather than a crop or build failure; hosted-path verification remains open until the exact runtime URLs resolve consistently.

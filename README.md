@@ -1,19 +1,94 @@
-# GitHub Pages — اللعب المحلي فقط
+# 🕵️‍♂️ Guess Who: Digital Edition | خمن من؟ — النسخة الرقمية
 
-يُنتج الأمر `pnpm build:github-pages` نسخة ثابتة داخل `dist/github-pages`. تستخدم هذه النسخة مسارات `#` حتى تعمل من مجلد المستودع `Guess-Who-Digital-Edition`، وتضم نسخة محلية من الشعار وكل صور البطاقات المستخدمة. تبقى مسارات اللعب المحلي فقط متاحة: Pass & Play وSplit Screen ولوحة النتائج المحلية.
+> **A beautifully illustrated, real-time two-player guessing game.**  
+> **لعبة التخمين الكلاسيكية الشهيرة "خمن من؟" بتصميم عصري وأوضاع لعب متعددة (محلياً وعبر الإنترنت).**
 
-| الأمر | النتيجة |
-|---|---|
-| `pnpm build:github-pages` | يبني Vite بوضع `github-pages`، ويستخرج الصور المرجعية من خادم التطوير إلى `dist/github-pages/manus-storage`. |
-| `GITHUB_PAGES_ASSET_SOURCE=https://… pnpm build:github-pages` | يتيح تحديد مصدر بديل لخادم WebDev عند تصدير الأصول. |
-| `pnpm preview:github-pages` | يشغّل معاينة محلية على `http://localhost:4174/Guess-Who-Digital-Edition/` تحاكي مسار GitHub Pages الفعلي. |
+---
 
-ينسخ التصدير الحالي **612 أصلًا**: شعار اللعبة و611 صورة بطاقة، بأسماء مطابقة لسجلات اللعبة. لذلك تتحول كل مراجع `/manus-storage/` في الإصدار الثابت إلى ملفات داخل `docs/manus-storage/` عند المزامنة، ولا تعود طلبات الصور إلى نطاق WebDev.
+## 🌟 Features | المميزات الرئيسية
 
-يستخدم وضع GitHub Pages نقطة تشغيل `App.github-pages.tsx` مستقلة؛ فهي لا تستورد مسارات أو مكونات Room أو tRPC. تأكد بناء Pages من عدم وجود أي ملف أصول باسم `Room*`، في حين يظل تطبيق WebDev الرئيسي محتفظًا بوضع Room الخادمي دون تغيير.
+### 🎮 Game Modes | أوضاع اللعب
+- **📱 Pass & Play (جهاز واحد - تبادل الأدوار):** العب مع صديقك على نفس الجهاز مع ميزة إخفاء البطاقة السرية وحمايتها من التلصص.
+- **💻 Split Screen (جهاز واحد - شاشة مقسمة):** شاشة مقسمة للاعبين جنباً إلى جنب على الأجهزة اللوحية أو شاشات الكمبيوتر.
+- **🌐 Room Mode (عبر جهازين - أونلاين):** إنشاء أو الانضمام إلى غرفة باستخدام كود مكون من 6 خانات، مع مزامنة فورية ومباشرة للأدوار والبطاقات المستبعدة عبر **Supabase Realtime**.
+- **🏆 Local Leaderboard (لوحة المتصدرين):** تسجيل النتائج والإحصائيات وتاريخ المواجهات بين اللاعبين.
 
-تم التحقق محليًا من Pass & Play وSplit Screen ونافذة كشف السر وشاشة النتيجة. تتحقق المحاكاة أيضًا من أن صور البطاقات تظهر عبر `/Guess-Who-Digital-Edition/manus-storage/…` ولا تسجل أي طلب إلى المسار الجذري `/manus-storage/…`.
+---
 
-لا تُنسخ مفاتيح Supabase ولا مسارات Room إلى النسخة المنشورة. GitHub Pages لا يشغّل خادم tRPC ولا يمكنه حفظ `SUPABASE_SERVICE_ROLE_KEY` سرًا؛ لذلك تبقى الغرف بين جهازين متاحة فقط في النشر الخادمي الرئيسي.
+### 🎨 Categories | فئات وبطاقات اللعب
+تضم اللعبة أكثر من **700 بطاقة مرسومة بدقة** موزعة عبر 6 عوالم مختلفة (24 بطاقة يتم اختيارها عشوائياً في كل جولة):
 
-بعد دفع مجلد `docs/` الناتج إلى المستودع، اختر في إعدادات GitHub Pages المصدر **Deploy from a branch** ثم الفرع `main` والمجلد `/docs`.
+| الفئة | الوصف | الفئة البرمجية |
+| :--- | :--- | :--- |
+| 🐾 **Animals** | 88 كارت لحيوانات ورسومات كرتونية لطيفة | `animals` |
+| ◉ **Characters** | 144 شخصية ووجوه مرسومة بتفاصيل مميزة | `fictional_characters` |
+| ✦ **Cartoon Characters** | 123 شخصية كرتونية شهيرة | `cartoon_characters` |
+| ▦ **Egyptian Movies** | 150 بوستر لأشهر كلاسيكيات وأفلام السينما المصرية | `egyptian_movies` |
+| 🎬 **Cartoon Movies** | 100 بوستر لأفلام الأنميشن والكرتون العالمية | `cartoon_movies` |
+| 😀 **Emojis** | 100 إيموجي وتعبير وجه مختلف | `emojis` |
+
+---
+
+## 🛠️ Tech Stack | التقنيات المستخدمة
+
+- **Frontend:** [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/), [Tailwind CSS v4](https://tailwindcss.com/), [Wouter](https://github.com/molefrog/wouter) (Hash & Path Routing), [Lucide React Icons](https://lucide.dev/).
+- **Backend & Realtime:** [Supabase](https://supabase.com/) (PostgreSQL, Realtime Subscriptions, Anonymous Auth, Row Level Security - RLS).
+- **Testing & Quality:** [Vitest](https://vitest.dev/), TypeScript strict checking.
+
+---
+
+## 🚀 Getting Started | التشغيل المحلي
+
+### 1. المتطلبات الأساسية
+- **Node.js:** الإصدار 20 أو أحدث.
+- **pnpm:** مدير الحزم الموصى به (`npm install -g pnpm`).
+
+### 2. تثبيت الحزم
+```bash
+pnpm install
+```
+
+### 3. إعداد متغيرات البيئة (`.env`)
+أنشئ ملف `.env` في المسار الرئيسي وضَع مفاتيح مشروع Supabase:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+```
+
+### 4. تشغيل خادم التطوير
+```bash
+pnpm dev
+```
+افتح المتصفح على `http://localhost:5173`.
+
+### 5. تشغيل الاختبارات
+```bash
+pnpm test
+pnpm check
+```
+
+---
+
+## 📦 GitHub Pages Deployment | النشر على GitHub Pages
+
+يتم تصدير التطبيق تلقائياً إلى مجلد `docs/` ليعمل بسلاسة كـ Single Page Application (SPA) على GitHub Pages:
+
+### 1. أمر البناء والتصدير
+```bash
+pnpm build:github-pages
+```
+
+### 2. إعدادات GitHub Pages
+في صفحة المستودع على GitHub:
+1. اذهب إلى **Settings** ⚙️ ➔ **Pages**.
+2. في قسم **Build and deployment**:
+   - **Source:** اختر `Deploy from a branch`.
+   - **Branch:** اختر `main`.
+   - **Folder:** اختر `/docs`.
+3. اضغط **Save** وسيتم نشر الموقع مباشرة.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
