@@ -323,6 +323,7 @@ language plpgsql
 security definer
 set search_path = public, auth
 as $$
+#variable_conflict use_column
 declare
   v_room public.game_rooms%rowtype;
   v_player_name varchar(32) := btrim(p_player_name);
@@ -333,35 +334,35 @@ begin
   end if;
 
   select * into v_room
-  from public.game_rooms
-  where public.game_rooms.room_code = upper(btrim(p_room_code))
+  from public.game_rooms gr
+  where gr.room_code = upper(btrim(p_room_code))
   for update;
 
   if not found then
     raise exception 'Room not found. Check the six-character code and try again.' using errcode = 'P0002';
   end if;
   if v_room.status in ('waiting', 'setup', 'secret_selection', 'playing') and v_room.last_activity_at <= now() - interval '1 hour' then
-    update public.game_rooms
-    set status = 'expired', active_seat = null, feedback = 'This room has expired.', revision = revision + 1, expires_at = now()
-    where id = v_room.id;
+    update public.game_rooms gr
+    set status = 'expired', active_seat = null, feedback = 'This room has expired.', revision = gr.revision + 1, expires_at = now()
+    where gr.id = v_room.id;
     raise exception 'This room has expired.' using errcode = 'P0001';
   end if;
   if v_room.status not in ('waiting', 'setup') then
     raise exception 'This game is no longer available to join.' using errcode = '23505';
   end if;
-  if exists (select 1 from public.room_memberships where room_id = v_room.id and user_id = auth.uid()) then
+  if exists (select 1 from public.room_memberships rm where rm.room_id = v_room.id and rm.user_id = auth.uid()) then
     raise exception 'This device already has a seat in the room.' using errcode = '23505';
   end if;
-  if exists (select 1 from public.room_memberships where room_id = v_room.id and seat_number = 2) then
+  if exists (select 1 from public.room_memberships rm where rm.room_id = v_room.id and rm.seat_number = 2) then
     raise exception 'This room already has two players.' using errcode = '23505';
   end if;
 
   insert into public.room_memberships (room_id, user_id, seat_number) values (v_room.id, auth.uid(), 2);
   insert into public.room_public_seats (room_id, seat_number, player_name) values (v_room.id, 2, v_player_name);
   insert into public.room_private_states (room_id, seat_number, hearts) values (v_room.id, 2, v_room.heart_limit);
-  update public.game_rooms
-  set status = 'setup', revision = revision + 1, last_activity_at = now(), expires_at = now() + interval '1 hour'
-  where id = v_room.id;
+  update public.game_rooms gr
+  set status = 'setup', revision = gr.revision + 1, last_activity_at = now(), expires_at = now() + interval '1 hour'
+  where gr.id = v_room.id;
   return query select v_room.id, v_room.room_code, 2::smallint;
 end;
 $$;
