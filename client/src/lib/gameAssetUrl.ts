@@ -1,25 +1,20 @@
 const managedAssetPrefix = "/manus-storage/";
-const supportedImageExtension = /\.(png|jpe?g|webp)$/i;
 
-export function toOptimizedCardAssetName(assetUrl: string, width: 240 | 480 = 480) {
+export function toOptimizedCardAssetName(assetUrl: string, _width: 240 | 480 = 480) {
   const assetName = assetUrl.startsWith(managedAssetPrefix)
     ? assetUrl.slice(managedAssetPrefix.length)
     : assetUrl;
-  return supportedImageExtension.test(assetName)
-    ? assetName.replace(supportedImageExtension, `-${width}.webp`)
-    : assetName;
+  return assetName;
 }
 
-export function gameAssetUrl(assetUrl: string, width: 240 | 480 = 480) {
+export function gameAssetUrl(assetUrl: string, _width: 240 | 480 = 480) {
   if (import.meta.env.MODE === "github-pages" && assetUrl.startsWith(managedAssetPrefix)) {
-    return `${import.meta.env.BASE_URL}manus-storage/${toOptimizedCardAssetName(assetUrl, width)}`;
+    const filename = assetUrl.slice(managedAssetPrefix.length);
+    return `${import.meta.env.BASE_URL}manus-storage/${filename}`;
   }
   return assetUrl;
 }
 
-export function gameAssetSrcSet(assetUrl: string) {
-  if (import.meta.env.MODE !== "github-pages" || !assetUrl.startsWith(managedAssetPrefix)) {
-    return undefined;
-  }
-  return `${gameAssetUrl(assetUrl, 240)} 240w, ${gameAssetUrl(assetUrl, 480)} 480w`;
+export function gameAssetSrcSet(_assetUrl: string) {
+  return undefined;
 }

@@ -11,7 +11,12 @@ export function registerStorageProxy(app: Express) {
       return;
     }
 
-    // 1. Check local file system fallback
+    // 1. Check local file system fallback (docs/manus-storage or client/public/manus-storage)
+    const docsPath = path.join(process.cwd(), "docs", "manus-storage", key);
+    if (fs.existsSync(docsPath)) {
+      res.sendFile(docsPath);
+      return;
+    }
     const localPublicPath = path.join(process.cwd(), "client", "public", "manus-storage", key);
     if (fs.existsSync(localPublicPath)) {
       res.sendFile(localPublicPath);
