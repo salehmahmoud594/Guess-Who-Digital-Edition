@@ -199,6 +199,49 @@ export async function updateRoom(roomId: number, values: RoomPatch) {
   await request<JsonRecord[]>("rooms", { method: "PATCH", query: { id: `eq.${roomId}` }, body: roomPayload(values), prefer: "return=minimal" });
 }
 
+/**
+ * Returns rooms that were still in a pre-finish game state at the specified
+ * cutoff. A second conditional update is required before expiring each row so
+ * a player action racing the cleanup can never close a newly active room.
+ */
+export async function getInactiveRoomCandidates(cutoff: Date) {
+  const rows = await request<JsonRecord[]>("rooms", {
+    query: {
+      select: "*",
+      status: "in.(waiting,setup,secret_selection,playing)",
+      last_activity_at: `lte.${toIso(cutoff)}`,
+      order: "id.asc",
+      limit: "500",
+    },
+  });
+  return rows.map(mapRoom);
+}
+
+/**
+ * Atomically expires a room only when it remains inactive. The status and
+ * timestamp predicates make repeated scheduled runs safe and prevent a stale
+ * cleanup read from overwriting a concurrent player action.
+ */
+export async function expireRoomIfStillInactive(room: Room, cutoff: Date, expiredAt: Date) {
+  const rows = await request<JsonRecord[]>("rooms", {
+    method: "PATCH",
+    query: {
+      id: `eq.${room.id}`,
+      status: "in.(waiting,setup,secret_selection,playing)",
+      last_activity_at: `lte.${toIso(cutoff)}`,
+    },
+    body: roomPayload({
+      status: "expired",
+      activeSeat: null,
+      feedback: "This room expired after one hour of inactivity.",
+      revision: room.revision + 1,
+      expiresAt: expiredAt,
+    }),
+    prefer: "return=representation",
+  });
+  return rows.length > 0;
+}
+
 export async function createSeat(values: SeatCreate) {
   const rows = await request<JsonRecord[]>("seats", { method: "POST", body: seatPayload(values), prefer: "return=representation" });
   if (!rows[0]) throw new Error("Supabase did not return the created seat.");

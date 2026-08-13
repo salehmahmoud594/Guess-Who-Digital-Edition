@@ -1,9 +1,11 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { gameAccessProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import * as roomService from "./roomService";
+import { grantGameAccess, hasValidGameAccess, revokeGameAccess, verifyGameAccessPassword } from "./gameAccess";
 
 const roomCodeSchema = z.string().trim().toUpperCase().regex(/^[A-HJ-NP-Z2-9]{6}$/, "Enter a valid six-character room code.");
 const playerNameSchema = z.string().trim().min(1, "Enter a player name.").max(32);
@@ -28,21 +30,32 @@ export const appRouter = router({
     }),
   }),
 
+  gameAccess: router({
+    status: publicProcedure.query(({ ctx }) => ({ granted: hasValidGameAccess(ctx.req) })),
+    unlock: publicProcedure.input(z.object({ password: z.string().min(1).max(256) })).mutation(({ ctx, input }) => {
+      if (!verifyGameAccessPassword(input.password)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "The game password is incorrect." });
+      }
+      return grantGameAccess(ctx.req, ctx.res);
+    }),
+    logout: publicProcedure.mutation(({ ctx }) => revokeGameAccess(ctx.req, ctx.res)),
+  }),
+
   room: router({
-    createRoom: publicProcedure
+    createRoom: gameAccessProcedure
       .input(z.object({ playerName: playerNameSchema, category: categorySchema, heartOption: heartOptionSchema, tabId: tabIdSchema }))
       .mutation(({ input }) => roomService.createRoom(input)),
-    joinRoom: publicProcedure
+    joinRoom: gameAccessProcedure
       .input(z.object({ roomCode: roomCodeSchema, playerName: playerNameSchema, tabId: tabIdSchema }))
       .mutation(({ input }) => roomService.joinRoom(input)),
-    getSnapshot: publicProcedure.input(sessionSchema).query(({ input }) => roomService.getSnapshot(input)),
-    reconnect: publicProcedure.input(sessionSchema).mutation(({ input }) => roomService.reconnect(input)),
-    setReady: publicProcedure.input(commandSchema.extend({ ready: z.boolean() })).mutation(({ input }) => roomService.setReady(input)),
-    selectSecret: publicProcedure.input(commandSchema.extend({ cardId: z.number().int().positive() })).mutation(({ input }) => roomService.selectSecret(input)),
-    toggleElimination: publicProcedure.input(commandSchema.extend({ cardId: z.number().int().positive() })).mutation(({ input }) => roomService.toggleElimination(input)),
-    endTurn: publicProcedure.input(commandSchema).mutation(({ input }) => roomService.endTurn(input)),
-    submitGuess: publicProcedure.input(commandSchema.extend({ cardId: z.number().int().positive() })).mutation(({ input }) => roomService.submitGuess(input)),
-    startRematch: publicProcedure.input(commandSchema).mutation(({ input }) => roomService.startRematch(input)),
+    getSnapshot: gameAccessProcedure.input(sessionSchema).query(({ input }) => roomService.getSnapshot(input)),
+    reconnect: gameAccessProcedure.input(sessionSchema).mutation(({ input }) => roomService.reconnect(input)),
+    setReady: gameAccessProcedure.input(commandSchema.extend({ ready: z.boolean() })).mutation(({ input }) => roomService.setReady(input)),
+    selectSecret: gameAccessProcedure.input(commandSchema.extend({ cardId: z.number().int().positive() })).mutation(({ input }) => roomService.selectSecret(input)),
+    toggleElimination: gameAccessProcedure.input(commandSchema.extend({ cardId: z.number().int().positive() })).mutation(({ input }) => roomService.toggleElimination(input)),
+    endTurn: gameAccessProcedure.input(commandSchema).mutation(({ input }) => roomService.endTurn(input)),
+    submitGuess: gameAccessProcedure.input(commandSchema.extend({ cardId: z.number().int().positive() })).mutation(({ input }) => roomService.submitGuess(input)),
+    startRematch: gameAccessProcedure.input(commandSchema).mutation(({ input }) => roomService.startRematch(input)),
   }),
 
   // TODO: add feature routers here, e.g.

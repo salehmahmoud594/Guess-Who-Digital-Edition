@@ -4,6 +4,7 @@
 @import "./game.css";
 @import "./review.css";
 @import "./mobile-fixes.css";
+@import "./access-fixes.css";
 
 :root { --ink: #18253A; --oat: #F3EEE3; --cream: #FFFAF0; --apricot: #F3B89B; --rust: #C2694C; --teal: #2F8A7F; --mint: #D5F0EB; --butter: #F5D58B; --muted: #667078; --line: rgba(24,37,58,.14); }
 * { box-sizing: border-box; }

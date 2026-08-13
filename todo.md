@@ -75,8 +75,8 @@
 - [x] Integrate Emojis into local play and Room category settings without altering existing categories.
 - [x] Add and run coverage for the Emoji category in local play and Room.
 - [x] Prepare a static GitHub Pages build path for single-device play and document that Room requires a server and database.
-- [ ] Sync the updated project to `salehmahmoud594/Guess-Who-Digital-Edition` and verify the pushed commit.
-- [ ] Save a checkpoint for the Emoji and GitHub delivery update.
+- [x] Sync the updated project to `salehmahmoud594/Guess-Who-Digital-Edition` on `main`, including the portable `docs/` artifact, and verify the pushed commit.
+- [x] Save a new checkpoint covering the GitHub Pages split build, portable `docs/` artifact, asset URL fixes, local static smoke validation, and the push to `salehmahmoud594/Guess-Who-Digital-Edition` on `main`; record its version ID in the handoff.
 - [x] Complete the requested Emojis-only update before revisiting the deferred GitHub Pages tasks.
 - [x] Save a checkpoint for the verified Emojis-only update before discussing GitHub.
 - [x] Save the verified Emojis-only update and record its checkpoint version for the handoff.
@@ -96,3 +96,70 @@
 - [x] Confirm direct PostgreSQL is unreachable from this environment because the supplied host is IPv6-only, then remove that unused path.
 - [x] Provide and execute an idempotent Supabase SQL Editor schema for Room, then validate it through the REST API because direct PostgreSQL is IPv6-only in the current environment.
 - [x] Verify in Supabase SQL Editor that `anon` and `authenticated` retain no table grants on Room data before checkpointing; the query returned zero rows.
+
+## Password-protected game access
+
+- [x] Restore development Vite configuration resolution so the server serves `client/src/main.tsx` instead of the HTML fallback after introducing the mode-based GitHub Pages build.
+- [x] Store one shared game-access password as a server-only project secret.
+- [x] Add a server-verified signed access session that expires safely and never returns the password to the browser.
+- [x] Add a responsive password gate before the home screen and block direct local-game and Room links until access is granted.
+- [x] Require a valid game-access session for all Room procedures, including create, join, snapshot, reconnect, and gameplay commands.
+- [x] Keep the GitHub Pages local-only build explicitly unauthenticated and document that the password-protected Room build is served by WebDev Publish.
+- [x] Add tests for rejected requests, wrong passwords, granted sessions, and protected Room commands; type-check, 8 Vitest tests, production build, static isolation check, and desktop/mobile direct-URL gate verification all passed.
+- [x] Save a checkpoint for the verified password gate.
+
+## Room availability investigation
+
+- [x] Diagnose and fix the white screen at `/room/create` after a successful game-access session on the server-backed preview; nested Wouter route groups were incorrectly matching as the first Switch branch.
+- [x] Identify the reported Room failure as occurring on the server-backed preview, then capture its post-password page state and Room flow.
+- [x] Separate browser-extension console noise from the actual issue; the reported `runtime.lastError` is unrelated to the game and no Room API exception caused the blank screen.
+- [x] Reproduce the failing create/join flow, correct the Wouter route tree, and verify a two-device Room session after password access; full browser smoke test passed.
+- [x] Save a checkpoint for the verified Room availability fix.
+
+## Room and local-play experience improvements
+
+- [x] Add an immediate, accessible offline banner inside Room that reacts to browser connectivity changes and explains that sync resumes automatically upon reconnection.
+- [x] Add a visible reconnecting state when Room polling or an important command fails while the browser remains online.
+- [x] Add clear disabled/loading feedback to Create Room and Join Room submissions, preventing duplicate room commands while requests are pending.
+- [x] Review Room and single-device play for high-value usability improvements that preserve existing rules, private secrets, and responsive behavior.
+- [x] Add targeted tests and responsive browser checks for connection-loss UI, loading states, and any approved usability improvements.
+- [x] Save a checkpoint for the verified Room and local-play experience improvements.
+
+## Room timeout, cleanup, and full-version delivery
+
+- [x] Confirm whether the requested timer limits each turn or the full Room session, then define the visible player experience and server-enforced rule. The approved choice is silent cleanup only, with no visible timer or rule change.
+- [ ] Define a safe expiry policy for stale `playing` rooms and a deterministic periodic cleanup that cannot affect active matches.
+- [ ] Implement the agreed timer/expiry behavior while preserving per-seat privacy and current Room rules.
+- [ ] Verify the Room timeout, Supabase status updates, and cleanup idempotency with targeted tests and browser checks.
+- [ ] Save a checkpoint for the verified timeout and cleanup update.
+- [x] Document the required GitHub repository contents, secrets, and hosting path for a complete server-backed Room deployment.
+
+### Confirmed direction
+
+- [ ] Apply silent inactivity expiry: a Room in `playing` becomes `expired` only after 60 minutes without a successful Room activity.
+- [ ] Add an idempotent scheduled cleanup that updates only stale `waiting`, `secret_selection`, or `playing` rooms and retains rows for safe audit/debugging.
+- [x] Explain that GitHub Pages can host only the local static mode; document the no-cost current hosted option and the requirements of external server hosting for Room.
+
+### Required activation and verification
+
+- [ ] Register and verify the scheduled job for `/api/scheduled/room-cleanup` so stale rooms are closed without any manual browser or server action.
+- [ ] Add focused coverage for the cleanup service and cron-only route, including idempotency and status scope.
+- [ ] Confirm in Supabase that stale `playing` records become `expired` after the scheduled path runs.
+
+## Supabase Realtime and RLS Room rebuild
+
+- [x] Audit the current Room code, Supabase project access, and existing schema before the replacement.
+- [x] Design a clean Room schema with separate public match state and private per-player data for RLS enforcement.
+- [x] Enable anonymous player identity and create RLS policies that protect opponent secrets and enforce seat ownership.
+- [x] Implement atomic Supabase RPC commands for room creation, joining, readiness, secret choice, card elimination, turn changes, guessing, rematch, and recovery.
+- [x] Enable Realtime subscriptions for the minimum required public and private Room data.
+- [x] Replace the Room client polling and server-mediated commands with authenticated Supabase Realtime and RPC flows.
+- [x] Retain the password gate as the first screen before any game-mode selection or direct game route.
+- [x] Implement silent 60-minute inactivity expiry and an idempotent Supabase-side scheduled cleanup.
+- [x] Produce a GitHub Pages-compatible build that uses only public Supabase client configuration.
+- [ ] Add and run tests for RLS boundaries, command authorization, realtime room flow, reconnect recovery, inactivity cleanup, and password-first access.
+- [ ] Verify the two-device Room flow and the GitHub Pages build, then save a final checkpoint.
+- [x] Restore local development-server startup where the copied project directory name prevents package-script binary resolution.
+- [x] Inspect the applied Supabase cleanup definition to confirm the 60-minute threshold and repeat-safe conditional update.
+- [ ] Verify cleanup behavior for stale active rooms, recent active rooms, and terminal rooms without inserting production test data.
+- [ ] Guard the GitHub Pages workflow so it stops safely until the required public Supabase build configuration is added by a repository administrator.

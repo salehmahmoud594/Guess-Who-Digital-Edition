@@ -2,13 +2,14 @@ import { createHash, randomBytes } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { GAME_ITEMS } from "../client/src/data/gameItems";
 import type { Room, RoomCategory, RoomHeartOption, RoomSettings, Seat } from "../drizzle/schema";
-import { createRoom as createRoomRecord, createSeat, createSeatToken, getRoomByCode, getRoomSeat, getRoomSeats, getSeatToken, isRoomStoreAvailable, updateRoom, updateSeat, updateSeatToken } from "./db";
+import { createRoom as createRoomRecord, createSeat, createSeatToken, expireRoomIfStillInactive, getInactiveRoomCandidates, getRoomByCode, getRoomSeat, getRoomSeats, getSeatToken, isRoomStoreAvailable, updateRoom, updateSeat, updateSeatToken } from "./db";
 
 const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const WAITING_TTL_MS = 30 * 60 * 1000;
-const ACTIVE_TTL_MS = 90 * 60 * 1000;
+export const ROOM_INACTIVITY_TTL_MS = 60 * 60 * 1000;
+const FINISHED_TTL_MS = 90 * 60 * 1000;
 const TOKEN_TTL_MS = 6 * 60 * 60 * 1000;
 const ONLINE_WINDOW_MS = 12 * 1000;
+const INACTIVITY_TRACKED_STATUSES: Room["status"][] = ["waiting", "setup", "secret_selection", "playing"];
 
 export type RoomSnapshot = {
   roomCode: string;
@@ -78,7 +79,12 @@ function startingHearts(option: RoomHeartOption) {
 }
 
 function expiryFor(status: Room["status"], timestamp: Date) {
-  return new Date(timestamp.getTime() + (status === "waiting" ? WAITING_TTL_MS : ACTIVE_TTL_MS));
+  const duration = INACTIVITY_TRACKED_STATUSES.includes(status) ? ROOM_INACTIVITY_TTL_MS : FINISHED_TTL_MS;
+  return new Date(timestamp.getTime() + duration);
+}
+
+export function isRoomInactive(room: Pick<Room, "status" | "lastActivityAt">, now = new Date()) {
+  return INACTIVITY_TRACKED_STATUSES.includes(room.status) && room.lastActivityAt.getTime() <= now.getTime() - ROOM_INACTIVITY_TTL_MS;
 }
 
 function toIds(value: unknown) {
@@ -89,7 +95,7 @@ async function findRoomOrFail(roomCode: string) {
   const room = await getRoomByCode(normalizedCode(roomCode));
   if (!room) fail("NOT_FOUND", "Room not found. Check the six-character code and try again.");
 
-  if (room.status !== "expired" && room.expiresAt.getTime() <= Date.now()) {
+  if (room.status !== "expired" && (room.expiresAt.getTime() <= Date.now() || isRoomInactive(room))) {
     const now = new Date();
     await updateRoom(room.id, { status: "expired", activeSeat: null, feedback: "This room has expired.", revision: room.revision + 1, lastActivityAt: now });
     return { ...room, status: "expired" as const, activeSeat: null, feedback: "This room has expired.", revision: room.revision + 1, lastActivityAt: now };
@@ -154,9 +160,17 @@ async function currentSnapshot(roomCode: string, seatNumber: number) {
 async function touchSession(room: Room, seat: Seat, tokenId: number) {
   const now = new Date();
   await Promise.all([updateSeat(seat.id, { lastSeenAt: now }), updateSeatToken(tokenId, { lastUsedAt: now })]);
-  if (room.status !== "waiting" && room.status !== "expired" && room.status !== "finished") {
+  if (INACTIVITY_TRACKED_STATUSES.includes(room.status)) {
     await updateRoom(room.id, { lastActivityAt: now, expiresAt: expiryFor(room.status, now) });
   }
+}
+
+/** Expires only rooms that have had no successful Room activity for one hour. */
+export async function expireInactiveRooms(now = new Date()) {
+  const cutoff = new Date(now.getTime() - ROOM_INACTIVITY_TTL_MS);
+  const candidates = await getInactiveRoomCandidates(cutoff);
+  const results = await Promise.all(candidates.map(room => expireRoomIfStillInactive(room, cutoff, now)));
+  return { scanned: candidates.length, expired: results.filter(Boolean).length, cutoff };
 }
 
 async function issueSeatToken(roomId: number, seatNumber: number, tabId: string) {

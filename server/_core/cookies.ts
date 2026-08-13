@@ -39,10 +39,14 @@ export function getSessionCookieOptions(
   //       ? hostname
   //       : undefined;
 
+  const secure = isSecureRequest(req);
+
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    // Chromium rejects SameSite=None cookies that are not Secure. Local smoke
+    // tests use http://localhost, whereas the public preview is HTTPS.
+    sameSite: secure ? "none" : "lax",
+    secure,
   };
 }

@@ -1,0 +1,3 @@
+.home-page::before {
+  pointer-events: none;
+}

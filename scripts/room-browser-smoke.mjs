@@ -3,6 +3,25 @@ import { chromium } from "playwright";
 const baseURL = process.env.ROOM_BASE_URL ?? "http://localhost:3000";
 const category = process.env.ROOM_CATEGORY;
 const saveScreenshots = process.env.ROOM_SAVE_SCREENSHOTS !== "0";
+const accessPassword = process.env.GAME_ACCESS_PASSWORD;
+
+if (!accessPassword) {
+  throw new Error("GAME_ACCESS_PASSWORD is required for the password-protected Room smoke test.");
+}
+
+async function unlockGame(page, readyFieldLabel) {
+  const passwordField = page.getByLabel("Game password");
+  const readyField = page.getByLabel(readyFieldLabel);
+  const needsUnlock = await Promise.race([
+    passwordField.waitFor({ state: "visible", timeout: 10000 }).then(() => true),
+    readyField.waitFor({ state: "visible", timeout: 10000 }).then(() => false),
+  ]);
+  if (!needsUnlock) return;
+  await passwordField.fill(accessPassword);
+  await page.getByRole("button", { name: "Enter the game" }).click();
+  await readyField.waitFor({ state: "visible", timeout: 10000 });
+}
+
 const browser = await chromium.launch({
   executablePath: "/usr/bin/chromium",
   headless: true,
@@ -15,6 +34,7 @@ const guest = await guestContext.newPage();
 
 try {
   await host.goto(`${baseURL}/room/create`);
+  await unlockGame(host, "What should player two call you?");
   await host.getByLabel("What should player two call you?").fill("Browser Host");
   if (category) await host.getByRole("button", { name: new RegExp(category) }).click();
   await host.getByRole("button", { name: /Open the Room/ }).click();
@@ -23,6 +43,7 @@ try {
   if (!roomCode) throw new Error("Host did not receive a room code.");
 
   await guest.goto(`${baseURL}/room/join`);
+  await unlockGame(guest, "Your name");
   await guest.getByLabel("Your name").fill("Browser Guest");
   await guest.getByLabel("Room code").fill(roomCode);
   await guest.getByRole("button", { name: /Join the Room/ }).click();
@@ -61,6 +82,7 @@ try {
   const guestSeat = await guest.evaluate(() => sessionStorage.getItem("guess-who:room-seat"));
   if (!guestSeat) throw new Error("Guest seat session was not available for the duplicate-tab check.");
   const duplicateContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await duplicateContext.addCookies(await guestContext.cookies());
   await duplicateContext.addInitScript((seat) => {
     const copied = JSON.parse(seat);
     copied.tabId = "duplicate-browser-tab";

@@ -1,7 +1,7 @@
 import { Clipboard, RefreshCw, ShieldAlert } from "lucide-react";
 import { useLocation } from "wouter";
 import { AppFrame } from "@/components/game/AppFrame";
-import { useRoomSession } from "@/hooks/useRoomSession";
+import { clearRoomSession } from "@/lib/supabaseRoom";
 
 export type RoomProblemKind = "missing" | "expired" | "duplicate" | "unavailable";
 
@@ -14,7 +14,6 @@ export function problemFromMessage(message?: string): RoomProblemKind {
 
 export function RoomProblem({ roomCode, kind, message }: { roomCode: string; kind: RoomProblemKind; message?: string }) {
   const [, navigate] = useLocation();
-  const { clearSession } = useRoomSession(roomCode);
   const details = {
     missing: {
       eyebrow: "Room recovery",
@@ -47,5 +46,5 @@ export function RoomProblem({ roomCode, kind, message }: { roomCode: string; kin
   }[kind];
   const Icon = details.icon;
 
-  return <AppFrame eyebrow={details.eyebrow} title="Connection problem"><section className="room-recovery"><Icon size={28} /><h1>{details.title}</h1><p>{details.body}</p><button className="secondary-button" type="button" onClick={() => { clearSession(); navigate("/room"); }}>{details.button}</button></section></AppFrame>;
+  return <AppFrame eyebrow={details.eyebrow} title="Connection problem"><section className="room-recovery"><Icon size={28} /><h1>{details.title}</h1><p>{details.body}</p><button className="secondary-button" type="button" onClick={() => { clearRoomSession(); navigate("/room"); }}>{details.button}</button></section></AppFrame>;
 }

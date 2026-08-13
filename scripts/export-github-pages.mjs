@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -6,6 +6,10 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const viteOutput = path.join(projectRoot, "dist", "public");
 const pagesOutput = path.join(projectRoot, "dist", "github-pages");
 const assetSource = (process.env.GITHUB_PAGES_ASSET_SOURCE || "http://localhost:3000").replace(/\/$/, "");
+const assetDirectory = process.env.GITHUB_PAGES_ASSET_DIRECTORY
+  ? path.resolve(projectRoot, process.env.GITHUB_PAGES_ASSET_DIRECTORY)
+  : null;
+const githubPagesBase = "/Guess-Who-Digital-Edition/";
 const registries = [
   "client/src/data/animalAssets.ts",
   "client/src/data/cartoonAssets.ts",
@@ -47,12 +51,24 @@ if (assetEntries.length !== 612) throw new Error(`Expected 612 exported images, 
 for (let start = 0; start < assetEntries.length; start += 12) {
   const batch = assetEntries.slice(start, start + 12);
   await Promise.all(batch.map(async (assetName) => {
+    const targetPath = path.join(targetDirectory, assetName);
+    if (assetDirectory) {
+      await cp(path.join(assetDirectory, assetName), targetPath);
+      return;
+    }
     const response = await fetch(`${assetSource}/manus-storage/${encodeURIComponent(assetName)}`);
     if (!response.ok) throw new Error(`Unable to export ${assetName}: HTTP ${response.status}`);
-    await writeFile(path.join(targetDirectory, assetName), Buffer.from(await response.arrayBuffer()));
+    await writeFile(targetPath, Buffer.from(await response.arrayBuffer()));
   }));
   process.stdout.write(`Exported ${Math.min(start + batch.length, assetEntries.length)}/${assetEntries.length} assets\n`);
 }
 
 await writeFile(path.join(pagesOutput, ".nojekyll"), "");
+await cp(path.join(pagesOutput, "index.html"), path.join(pagesOutput, "404.html"));
+const builtAssets = await readdir(path.join(pagesOutput, "assets"));
+await Promise.all(builtAssets.filter(file => file.endsWith(".js")).map(async (file) => {
+  const filePath = path.join(pagesOutput, "assets", file);
+  const source = await readFile(filePath, "utf8");
+  await writeFile(filePath, source.replaceAll('"/manus-storage/', `"${githubPagesBase}manus-storage/`));
+}));
 console.log(`GitHub Pages output ready: ${pagesOutput}`);

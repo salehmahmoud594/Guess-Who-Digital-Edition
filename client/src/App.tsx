@@ -6,6 +6,7 @@ import { Route, Router, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { GameProvider } from "./contexts/GameContext";
+import { GameAccessGate } from "./components/game/GameAccessGate";
 import Home from "./pages/Home";
 import Setup from "./pages/Setup";
 import SecretSelection from "./pages/SecretSelection";
@@ -19,37 +20,25 @@ const RoomWaiting = lazy(async () => ({ default: (await import("./pages/RoomLobb
 const RoomSecret = lazy(async () => ({ default: (await import("./pages/RoomGame")).RoomSecret }));
 const RoomGame = lazy(async () => ({ default: (await import("./pages/RoomGame")).RoomGame }));
 
-function LocalRoutes() {
-  return <>
-    <Route path={"/"} component={Home} />
-    <Route path={"/setup"} component={Setup} />
-    <Route path={"/secret"} component={SecretSelection} />
-    <Route path={"/game"} component={Gameplay} />
-    <Route path={"/result"} component={Result} />
-    <Route path={"/leaderboard"} component={Leaderboard} />
-  </>;
-}
-
-function RoomRoutes() {
+function RouteTree() {
   return <Suspense fallback={null}>
+    <Switch>
+      <Route path={"/"} component={Home} />
+      <Route path={"/setup"} component={Setup} />
+      <Route path={"/secret"} component={SecretSelection} />
+      <Route path={"/game"} component={Gameplay} />
+      <Route path={"/result"} component={Result} />
+      <Route path={"/leaderboard"} component={Leaderboard} />
     <Route path={"/room"} component={RoomEntry} />
     <Route path={"/room/create"} component={RoomCreate} />
     <Route path={"/room/join"} component={RoomJoin} />
     <Route path={"/room/:code/waiting"} component={RoomWaiting} />
     <Route path={"/room/:code/secret"} component={RoomSecret} />
     <Route path={"/room/:code/game"} component={RoomGame} />
-  </Suspense>;
-}
-
-function RouteTree() {
-  return (
-    <Switch>
-      <LocalRoutes />
-      <RoomRoutes />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
-  );
+  </Suspense>;
 }
 
 function AppRouter() {
@@ -68,7 +57,7 @@ function App() {
         defaultTheme="light"
         // switchable
       >
-        <TooltipProvider><Toaster /><GameProvider><AppRouter /></GameProvider></TooltipProvider>
+        <TooltipProvider><Toaster /><GameAccessGate><GameProvider><AppRouter /></GameProvider></GameAccessGate></TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
