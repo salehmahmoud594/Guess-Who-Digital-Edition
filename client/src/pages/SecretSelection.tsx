@@ -1,11 +1,95 @@
 // DESIGN PHILOSOPHY: Whimsical Tabletop Editorial — secret selection is quiet, private, and framed like choosing one card from a box.
-import { useState } from "react";
 import { ArrowLeft, Check, LockKeyhole } from "lucide-react";
 import { useLocation } from "wouter";
 import { AppFrame } from "@/components/game/AppFrame";
 import { GameCard } from "@/components/game/GameCard";
 import { HandoffOverlay } from "@/components/game/HandoffOverlay";
 import { useGame } from "@/contexts/GameContext";
-import type { GameItem } from "@/data/gameItems";
-export default function SecretSelection() { const [, navigate] = useLocation(); const { state, dispatch } = useGame(); const [localChoice, setLocalChoice] = useState<number | null>(null); const activeSecretPlayer = state.secretPlayer; const name = activeSecretPlayer === 1 ? state.player1Name : state.player2Name; const selected = activeSecretPlayer === 1 ? state.player1SecretId : state.player2SecretId; const choose = (id: number) => { setLocalChoice(id); dispatch({ type: "CHOOSE_SECRET", player: activeSecretPlayer, itemId: id }); }; const confirm = () => { if (state.mode === "split-screen") { dispatch({ type: "CONFIRM_SECRET" }); if (state.player1SecretId && state.player2SecretId) navigate("/game"); } else if (selected) dispatch({ type: "CONFIRM_SECRET" }); }; const splitReady = Boolean(state.player1SecretId && state.player2SecretId); return <AppFrame eyebrow="The secret round" title="Choose your face" action={<button className="icon-button" type="button" onClick={() => navigate("/setup")} aria-label="Back to setup"><ArrowLeft size={18} /></button>}><div className="secret-page"><div className="secret-heading"><div><span className="ink-tab">02 / Secret card</span><h1>{state.mode === "split-screen" ? "Choose privately." : `${name}, choose wisely.`}</h1><p>{state.mode === "split-screen" ? "Both sides choose at once. Keep your own secret behind your half of the table." : "Tap one card to make it your secret. Your choice will stay hidden."}</p></div><div className="private-badge"><LockKeyhole size={16} /> Private pick</div></div>{state.mode === "split-screen" ? <div className="split-secret"><SecretPicker player={1} playerName={state.player1Name} deck={state.deck} selectedId={state.player1SecretId} onChoose={(id) => dispatch({ type: "CHOOSE_SECRET", player: 1, itemId: id })} /><div className="split-seam"><span>VS</span></div><SecretPicker player={2} playerName={state.player2Name} deck={state.deck} selectedId={state.player2SecretId} onChoose={(id) => dispatch({ type: "CHOOSE_SECRET", player: 2, itemId: id })} /></div> : <div className="secret-grid">{state.deck.map((item) => <GameCard key={item.id} item={item} eliminated={selected !== item.id} onClick={() => choose(item.id)} />)}</div>}<div className="secret-actions">{state.mode === "split-screen" ? <button className="primary-button" type="button" disabled={!splitReady} onClick={confirm}>Start the face-off <Check size={18} /></button> : <button className="primary-button" type="button" disabled={!selected} onClick={confirm}>Lock in this face <Check size={18} /></button>}</div></div>{state.handoff && <HandoffOverlay nextPlayerName={state.handoff.nextPlayer === 1 ? state.player1Name : state.player2Name} reason={state.handoff.reason} onContinue={() => { dispatch({ type: "CLOSE_HANDOFF" }); if (state.handoff?.reason === "turn") navigate("/game"); }} />}</AppFrame>; }
-function SecretPicker({ player, playerName, deck, selectedId, onChoose }: { player: 1 | 2; playerName: string; deck: GameItem[]; selectedId: number | null; onChoose: (id: number) => void }) { return <section className={`secret-half secret-half-${player}`}><div className="secret-half-head"><span className="ink-tab">Player {player}</span><h2>{playerName}</h2><small>{selectedId ? "Secret selected" : "Choose one face"}</small></div><div className="secret-mini-grid">{deck.map((item) => <GameCard key={item.id} item={item} eliminated={selectedId !== null && selectedId !== item.id} onClick={() => onChoose(item.id)} />)}</div></section>; }
+
+export default function SecretSelection() {
+  const [, navigate] = useLocation();
+  const { state, dispatch } = useGame();
+  const activeSecretPlayer = state.secretPlayer;
+  const name = activeSecretPlayer === 1 ? state.player1Name : state.player2Name;
+  const otherName = activeSecretPlayer === 1 ? state.player2Name : state.player1Name;
+  const selected = activeSecretPlayer === 1 ? state.player1SecretId : state.player2SecretId;
+
+  const choose = (id: number) => {
+    dispatch({ type: "CHOOSE_SECRET", player: activeSecretPlayer, itemId: id });
+  };
+
+  const confirm = () => {
+    if (!selected) return;
+    if (state.secretPlayer === 2 && state.mode === "split-screen") {
+      dispatch({ type: "CONFIRM_SECRET" });
+      navigate("/game");
+    } else {
+      dispatch({ type: "CONFIRM_SECRET" });
+    }
+  };
+
+  return (
+    <AppFrame
+      eyebrow={`Secret selection · Player ${activeSecretPlayer}`}
+      title="Choose your secret"
+      action={
+        <button
+          className="icon-button"
+          type="button"
+          onClick={() => navigate("/setup")}
+          aria-label="Back to setup"
+        >
+          <ArrowLeft size={18} />
+        </button>
+      }
+    >
+      <div className="secret-page">
+        <div className="secret-heading">
+          <div>
+            <span className="ink-tab">Player {activeSecretPlayer} · Secret card</span>
+            <h1>{name}, choose secretly.</h1>
+            <p>
+              Tap one card to make it your secret. Keep your choice hidden from {otherName}.
+            </p>
+          </div>
+          <div className="private-badge">
+            <LockKeyhole size={16} /> Private pick
+          </div>
+        </div>
+
+        <div className="secret-grid">
+          {state.deck.map((item) => (
+            <GameCard
+              key={item.id}
+              item={item}
+              eliminated={selected !== null && selected !== item.id}
+              onClick={() => choose(item.id)}
+            />
+          ))}
+        </div>
+
+        <div className="secret-actions">
+          <button
+            className="primary-button"
+            type="button"
+            disabled={!selected}
+            onClick={confirm}
+          >
+            Lock in this face <Check size={18} />
+          </button>
+        </div>
+      </div>
+
+      {state.handoff && (
+        <HandoffOverlay
+          nextPlayerName={state.handoff.nextPlayer === 1 ? state.player1Name : state.player2Name}
+          reason={state.handoff.reason}
+          onContinue={() => {
+            dispatch({ type: "CLOSE_HANDOFF" });
+            if (state.handoff?.reason === "turn") navigate("/game");
+          }}
+        />
+      )}
+    </AppFrame>
+  );
+}

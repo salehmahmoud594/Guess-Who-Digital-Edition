@@ -26,7 +26,18 @@ function reducer(state: State, action: Action): State {
     case "SETUP": return { ...state, ...action.payload };
     case "START": { const deck = makeDeck(GAME_ITEMS, state.category); const hearts = heartCount(state.heartOption); return { ...state, screen: "secret", deck, player1SecretId: null, player2SecretId: null, player1EliminatedIds: [], player2EliminatedIds: [], player1Hearts: hearts, player2Hearts: hearts, activePlayer: 1, secretPlayer: 1, handoff: null, guessMode: false, pendingGuessId: null, winner: null, winReason: null, feedback: null }; }
     case "CHOOSE_SECRET": return action.player === 1 ? { ...state, player1SecretId: action.itemId } : { ...state, player2SecretId: action.itemId };
-    case "CONFIRM_SECRET": { if (state.secretPlayer === 1 && state.mode === "pass-play") return { ...state, secretPlayer: 2, handoff: { visible: true, nextPlayer: 2, reason: "secret" } }; if (state.secretPlayer === 2 && state.mode === "pass-play") return { ...state, screen: "gameplay", activePlayer: 1, handoff: { visible: true, nextPlayer: 1, reason: "turn" } }; if (state.mode === "split-screen" && state.player1SecretId && state.player2SecretId) return { ...state, screen: "gameplay", activePlayer: 1 }; return state; }
+    case "CONFIRM_SECRET": {
+      if (state.secretPlayer === 1) {
+        return { ...state, secretPlayer: 2, handoff: { visible: true, nextPlayer: 2, reason: "secret" } };
+      }
+      if (state.secretPlayer === 2) {
+        if (state.mode === "split-screen") {
+          return { ...state, screen: "gameplay", activePlayer: 1, handoff: null };
+        }
+        return { ...state, screen: "gameplay", activePlayer: 1, handoff: { visible: true, nextPlayer: 1, reason: "turn" } };
+      }
+      return state;
+    }
     case "SHOW_HANDOFF": return { ...state, handoff: { visible: true, nextPlayer: action.nextPlayer, reason: action.reason }, guessMode: false, pendingGuessId: null };
     case "CLOSE_HANDOFF": return { ...state, handoff: null, activePlayer: state.handoff?.nextPlayer ?? state.activePlayer, secretPlayer: state.handoff?.nextPlayer ?? state.secretPlayer };
     case "TOGGLE_ELIMINATED": { const key = action.player === 1 ? "player1EliminatedIds" : "player2EliminatedIds"; const ids = state[key].includes(action.itemId) ? state[key].filter((id) => id !== action.itemId) : [...state[key], action.itemId]; return { ...state, [key]: ids } as State; }
