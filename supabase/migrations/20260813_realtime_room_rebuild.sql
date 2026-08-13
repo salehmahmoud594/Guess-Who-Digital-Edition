@@ -334,7 +334,7 @@ begin
 
   select * into v_room
   from public.game_rooms
-  where room_code = upper(btrim(p_room_code))
+  where public.game_rooms.room_code = upper(btrim(p_room_code))
   for update;
 
   if not found then
