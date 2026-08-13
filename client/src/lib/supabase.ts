@@ -26,19 +26,14 @@ export async function ensureAnonymousPlayer() {
 }
 
 export async function gameAccessGranted() {
-  if (!isSupabaseConfigured || !supabase) return true;
+  if (!isSupabaseConfigured || !supabase) return false;
   try {
     await ensureAnonymousPlayer();
-    const { data, error } = await supabase
-      .from("game_access_grants")
-      .select("expires_at")
-      .gt("expires_at", new Date().toISOString())
-      .limit(1)
-      .maybeSingle();
-    if (error) return true;
+    const { data, error } = await supabase.rpc("room_has_access");
+    if (error) return false;
     return Boolean(data);
   } catch {
-    return true;
+    return false;
   }
 }
 
